@@ -175,6 +175,12 @@ impl<A: ServerApp + Send + Sync + 'static> Service<A> {
                                     Ok(io) => Self::handle_event(io, app, shutdown).await,
                                     Err(e) => {
                                         // TODO: Maybe IOApp trait needs a fn to handle/filter out this error
+                                        if let Some(ec) = &e.context {
+                                            if ec.as_str().contains("unexpected EOF") {
+                                                // this is a common case when a health check close the connection right after connect
+                                                return;
+                                            }
+                                        }
                                         if let Some(addr) = peer_addr {
                                             error!("Downstream handshake error from {}: {e}", addr);
                                         } else {
